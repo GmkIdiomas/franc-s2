@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Ouvir e Digitar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      text-align: center;
+      padding: 50px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 18px;
+      margin: 10px;
+      width: 80%;
+      max-width: 400px;
+    }
+    #feedback {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gmk Idiomas</h1>
+  <button onclick="playAudio()">🔊 Ouvir frase</button><br>
+  <input type="text" id="answerInput" placeholder="Digite aqui o que ouviu">
+  <br>
+  <button id="verifyButton" onclick="handleButtonClick()">Verificar</button>
+  <button id="restartButton" onclick="restartActivity()" style="display:none;">🔄 Refazer atividade</button>
+  <div id="feedback"></div>
+
+  <script>
+    const allPhrases = [
+      "Elle n'aime pas boire de la bière",
+      "Aimes-tu te lever tôt ?",
+      "Elle adore jouer du piano",
+      "Il n'aime pas regarder le foot",
+      "Il adore étudier l'anglais",
+      "Ils n'aiment pas boire du thé",
+      "Il n'aime pas aller au cinéma",
+      "Aimes-tu aller à l'école ?"
+    ];
+
+    let phrases, currentPhrase, currentIndex, awaitingNext, correctCount;
+    let frenchVoice = null;
+
+    function setVoice() {
+      const voices = speechSynthesis.getVoices();
+      frenchVoice = voices.find(voice =>
+        voice.lang === "fr-FR" && voice.name.toLowerCase().includes("google")
+      ) || voices.find(voice => voice.lang === "fr-FR");
+    }
+
+    function playAudio() {
+      if (currentPhrase) {
+        const utterance = new SpeechSynthesisUtterance(currentPhrase);
+        utterance.lang = "fr-FR";
+        if (frenchVoice) {
+          utterance.voice = frenchVoice;
+        }
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    function handleButtonClick() {
+      if (awaitingNext) {
+        loadNextPhrase();
+      } else {
+        checkAnswer();
+      }
+    }
+
+    function checkAnswer() {
+      const userAnswer = document.getElementById("answerInput").value.trim().toLowerCase();
+      const correctAnswer = currentPhrase.toLowerCase();
+      const feedback = document.getElementById("feedback");
+
+      if (userAnswer === correctAnswer) {
+        feedback.textContent = "✅ Muito bem! Resposta correta.";
+        feedback.style.color = "green";
+        correctCount++;
+      } else {
+        feedback.textContent = `❌ Resposta incorreta. A frase era: "${currentPhrase}"`;
+        feedback.style.color = "red";
+      }
+
+      document.getElementById("verifyButton").textContent = "Próxima frase";
+      awaitingNext = true;
+    }
+
+    function loadNextPhrase() {
+      currentIndex++;
+
+      if (currentIndex >= phrases.length) {
+        document.getElementById("feedback").innerHTML =
+          `🏁 Fim do exercício!<br>✅ Você acertou ${correctCount} de ${phrases.length} frases.`;
+        document.getElementById("verifyButton").style.display = "none";
+        document.getElementById("answerInput").style.display = "none";
+        document.getElementById("restartButton").style.display = "inline-block";
+        return;
+      }
+
+      currentPhrase = phrases[currentIndex];
+      playAudio();
+
+      document.getElementById("answerInput").value = "";
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("verifyButton").textContent = "Verificar";
+      awaitingNext = false;
+      document.getElementById("answerInput").focus();
+    }
+
+    function restartActivity() {
+      phrases = shuffleArray([...allPhrases]);
+      currentPhrase = phrases[0];
+      currentIndex = 0;
+      awaitingNext = false;
+      correctCount = 0;
+
+      document.getElementById("answerInput").value = "";
+      document.getElementById("answerInput").style.display = "inline-block";
+      document.getElementById("verifyButton").textContent = "Verificar";
+      document.getElementById("verifyButton").style.display = "inline-block";
+      document.getElementById("restartButton").style.display = "none";
+      document.getElementById("feedback").textContent = "";
+
+      playAudio();
+      document.getElementById("answerInput").focus();
+    }
+
+    function shuffleArray(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    document.getElementById("answerInput").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleButtonClick();
+      }
+    });
+
+    window.onload = () => {
+      restartActivity();
+    };
+
+    speechSynthesis.onvoiceschanged = setVoice;
+  </script>
+</body>
+</html>
